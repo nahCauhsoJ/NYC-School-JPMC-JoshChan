@@ -40,19 +40,6 @@ fun MainPageUi(
 ) {
     val context = LocalContext.current
 
-    // This only needs to be run once in the whole app lifetime,
-    //      and it's unnecessary to refresh this during it.
-    //      Hence, a one-time LaunchEffect in the UI will suffice.
-    // This is required over an init block in the view model cuz a race condition
-    //      can occur when accessing mutable state during view model's construction.
-    //      It also makes testing easier since init block in view model means a
-    //      certain testable function is forced to run on every creation.
-    LaunchedEffect(Unit) {
-        mainPageViewModel.initializeSchoolData()
-    }
-
-
-
     SearchBar(
         query = mainPageViewModel.schoolSearchQuery,
         onQueryChange = { mainPageViewModel.searchSchoolName(it, false) },

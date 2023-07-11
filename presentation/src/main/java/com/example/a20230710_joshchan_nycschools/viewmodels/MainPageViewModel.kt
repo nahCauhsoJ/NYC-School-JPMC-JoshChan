@@ -32,7 +32,7 @@ class MainPageViewModel @Inject constructor(
     // This school data pretty much doesn't update once it gets its data,
     //      so there really isn't a need to make it a StateFlow and
     //      convert to a mutable state in the UI.
-    var schoolsData by mutableStateOf<ApiResponse<List<SchoolItem>>>(ApiResponse.Null())
+    private var schoolsData by mutableStateOf<ApiResponse<List<SchoolItem>>>(ApiResponse.Null())
     private var satData by mutableStateOf<ApiResponse<List<SATItem>>>(ApiResponse.Null())
 
     // This is the school list filtered by schoolSearchQuery,
@@ -49,6 +49,10 @@ class MainPageViewModel @Inject constructor(
 
     var currentSelectedSchool by mutableStateOf<SchoolItem?>(null)
         private set
+
+    // This only needs to be run once in the whole app lifetime,
+    //      and it's unnecessary to refresh this during it.
+    init { initializeSchoolData() }
 
     fun initializeSchoolData() {
         viewModelScope.launch(ioDispatcher) {

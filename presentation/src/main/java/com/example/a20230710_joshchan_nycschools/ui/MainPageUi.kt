@@ -1,5 +1,8 @@
 package com.example.a20230710_joshchan_nycschools.ui
 
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -34,6 +38,8 @@ import com.example.a20230710_joshchan_nycschools.viewmodels.MainPageViewModel
 fun MainPageUi(
     mainPageViewModel: MainPageViewModel
 ) {
+    val context = LocalContext.current
+
     // This only needs to be run once in the whole app lifetime,
     //      and it's unnecessary to refresh this during it.
     //      Hence, a one-time LaunchEffect in the UI will suffice.
@@ -96,6 +102,8 @@ fun MainPageUi(
     }
 
     mainPageViewModel.currentSelectedSchool?.let {
+        BackHandler{ mainPageViewModel.unselectSchool() }
+
         SchoolItemDetailCard(
             it,
             mainPageViewModel.findSchoolSAT(it),
@@ -103,8 +111,8 @@ fun MainPageUi(
                 .fillMaxSize()
                 .zIndex(1f),
             mainPageViewModel::unselectSchool
-        ) {
-
+        ) { url ->
+            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://$url")))
         }
     }
 }

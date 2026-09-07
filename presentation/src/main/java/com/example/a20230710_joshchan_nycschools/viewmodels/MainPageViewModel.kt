@@ -63,13 +63,11 @@ class MainPageViewModel @Inject constructor(
         viewModelScope.launch(ioDispatcher) {
             withContext(Dispatchers.Main) {
                 isRefreshing = true
-                // Show loading state in UI immediately if we don't have data yet
                 if (schoolsDataFiltered !is ApiResponse.Success) {
                     schoolsDataFiltered = ApiResponse.Loading()
                 }
             }
 
-            // Start both calls in parallel and wait for their terminal result
             val schoolsDeferred = async { ucGetAllSchools.invoke().last() }
             val satDeferred = async { ucGetAllSat.invoke().last() }
 

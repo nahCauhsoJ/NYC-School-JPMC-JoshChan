@@ -16,7 +16,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.last
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -45,6 +47,9 @@ class MainPageViewModel @Inject constructor(
     var schoolSearchQuery by mutableStateOf("")
         private set
 
+    var isRefreshing by mutableStateOf(false)
+        private set
+
     private var schoolSearchDebounceJob: Job? = null
 
     var currentSelectedSchool by mutableStateOf<SchoolItem?>(null)
@@ -52,19 +57,30 @@ class MainPageViewModel @Inject constructor(
 
     // This only needs to be run once in the whole app lifetime,
     //      and it's unnecessary to refresh this during it.
-    init { initializeSchoolData() }
+    init { refreshData() }
 
-    fun initializeSchoolData() {
+    fun refreshData() {
         viewModelScope.launch(ioDispatcher) {
-            ucGetAllSchools.invoke().collect{
-                // The usecase should run on a UI thread, but the data below
-                //      needs to be updated on a main thread.
-                withContext(Dispatchers.Main) { schoolsData = it }
-                finalizeSearch()
+            withContext(Dispatchers.Main) {
+                isRefreshing = true
+                // Show loading state in UI immediately if we don't have data yet
+                if (schoolsDataFiltered !is ApiResponse.Success) {
+                    schoolsDataFiltered = ApiResponse.Loading()
+                }
             }
 
-            ucGetAllSat.invoke().collect{
-                withContext(Dispatchers.Main) { satData = it }
+            // Start both calls in parallel and wait for their terminal result
+            val schoolsDeferred = async { ucGetAllSchools.invoke().last() }
+            val satDeferred = async { ucGetAllSat.invoke().last() }
+
+            val schoolsResult = schoolsDeferred.await()
+            val satResult = satDeferred.await()
+
+            withContext(Dispatchers.Main) {
+                schoolsData = schoolsResult
+                satData = satResult
+                isRefreshing = false
+                finalizeSearch()
             }
         }
     }

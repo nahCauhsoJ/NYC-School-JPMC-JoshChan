@@ -3,14 +3,19 @@ package com.example.a20230710_joshchan_nycschools.ui
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -19,9 +24,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -33,12 +38,16 @@ import com.example.a20230710_joshchan_nycschools.model.SchoolItem
 import com.example.a20230710_joshchan_nycschools.utils.ApiResponse
 import com.example.a20230710_joshchan_nycschools.viewmodels.MainPageViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
 fun MainPageUi(
     mainPageViewModel: MainPageViewModel
 ) {
     val context = LocalContext.current
+    val pullRefreshState = rememberPullRefreshState(
+        refreshing = mainPageViewModel.isRefreshing,
+        onRefresh = { mainPageViewModel.refreshData() }
+    )
 
     SearchBar(
         query = mainPageViewModel.schoolSearchQuery,
@@ -64,28 +73,49 @@ fun MainPageUi(
                 Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
-                    .weight(1f),
-                contentAlignment = Alignment.Center
+                    .weight(1f)
+                    .pullRefresh(pullRefreshState),
+                contentAlignment = Alignment.TopCenter
             ) {
                 when (val data = mainPageViewModel.schoolsDataFiltered) {
                     is ApiResponse.Error -> {
-                        Text("Error loading the list of schools...")
+                        LazyColumn(Modifier.fillMaxSize()) {
+                            item {
+                                Box(
+                                    Modifier.fillParentMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("Error loading the list of schools...")
+                                }
+                            }
+                        }
                     }
                     is ApiResponse.Loading -> {
-                        CircularProgressIndicator(
-                            Modifier.size(256.dp),
-                            strokeWidth = 16.dp
-                        )
+                        // Handled by LoadingOverlay
                     }
-                    is ApiResponse.Null -> {}
+                    is ApiResponse.Null -> {
+                        LazyColumn(Modifier.fillMaxSize()) {
+                            item { Box(Modifier.fillParentMaxSize()) }
+                        }
+                    }
                     is ApiResponse.Success -> {
                         PageContentIfSuccess(data = data.body) {
                             mainPageViewModel.selectSchool(it)
                         }
                     }
                 }
+
+                PullRefreshIndicator(
+                    refreshing = mainPageViewModel.isRefreshing,
+                    state = pullRefreshState,
+                    modifier = Modifier.align(Alignment.TopCenter)
+                )
             }
         }
+    }
+
+    if (mainPageViewModel.schoolsDataFiltered is ApiResponse.Loading) {
+        LoadingOverlay()
     }
 
     mainPageViewModel.currentSelectedSchool?.let {
@@ -119,5 +149,19 @@ private fun PageContentIfSuccess(
                 if (i < data.lastIndex) Divider(Modifier.padding(vertical = 8.dp))
             }
         }
+    }
+}
+
+@Composable
+fun LoadingOverlay() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.3f))
+            .zIndex(10f)
+            .clickable(enabled = false) { },
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator()
     }
 }

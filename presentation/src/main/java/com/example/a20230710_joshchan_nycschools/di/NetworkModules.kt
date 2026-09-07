@@ -11,6 +11,7 @@ import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.create
+import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
 @Module
@@ -22,6 +23,9 @@ class NetworkModules {
         .baseUrl(ConstData.BASE_URL)
         .addConverterFactory(GsonConverterFactory.create())
         .client( OkHttpClient().newBuilder()
+            .connectTimeout(ConstData.TIMEOUT, TimeUnit.MILLISECONDS)
+            .readTimeout(ConstData.TIMEOUT, TimeUnit.MILLISECONDS)
+            .writeTimeout(ConstData.TIMEOUT, TimeUnit.MILLISECONDS)
             .build()
         )
         .build()
